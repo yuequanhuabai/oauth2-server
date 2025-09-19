@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth2 授权服务器</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+<h2>用户登录</h2>
+<form method="post" action="/oauth/authorize">
+    <input type="hidden" name="client_id" th:value="${client_id}"/>
+    <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
+    <input type="hidden" name="state" th:value="${state}"/>
+
+    <p>
+        用户名: <input type="text" name="username" placeholder="admin"/>
+    </p>
+    <p>
+        密码: <input type="password" name="password" placeholder="123456"/>
+    </p>
+    <p>
+        <button type="submit">登录并授权</button>
+    </p>
+</form>
+</body>
+</html>

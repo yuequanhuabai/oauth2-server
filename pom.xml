@@ -41,20 +41,32 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Boot Web: 提供REST API和HTTP服务能力 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- 作用:
+                 1. 内置Tomcat服务器，处理HTTP请求
+                 2. Spring MVC框架，支持@Controller、@RequestMapping等注解
+                 3. JSON序列化，自动将Java对象转换为JSON响应
+            -->
+        </dependency>
 
-
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-oauth2-authorization-server</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-security</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-web</artifactId>
-            </dependency>
+        <!-- Thymeleaf模板引擎: 渲染动态HTML页面 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+            <!-- 作用:
+                 1. 渲染登录页面(login.html)，支持动态数据绑定
+                 2. 模板语法支持，如 th:value="${client_id}"
+                 3. 自动配置视图解析器，Controller返回字符串自动映射到模板
+            -->
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
     </dependencies>
 
