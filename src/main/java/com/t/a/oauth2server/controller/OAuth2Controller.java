@@ -1,16 +1,20 @@
 package com.t.a.oauth2server.controller;
 
 import com.t.a.oauth2server.conf.DataStore;
+import com.t.a.oauth2server.enums.CodeChallengeMethod;
 import com.t.a.oauth2server.pojo.AccessToken;
 import com.t.a.oauth2server.pojo.AuthCode;
 import com.t.a.oauth2server.pojo.ClientInfo;
 import com.t.a.oauth2server.pojo.User;
+import com.t.a.oauth2server.util.PkceVerifier;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,6 +31,8 @@ public class OAuth2Controller {
                             @RequestParam String redirect_uri,       // 重定向URI
                             @RequestParam String response_type,      // 响应类型(固定为code)
                             @RequestParam(required = false) String state,  // 状态参数(防CSRF)
+                            @RequestParam(required = false, name = "code_challenge") String codeChallenge,
+                            @RequestParam(required = false, name = "code_challenge_method") String codeChallengeMethod,
                             Model model) {
 
         // 【安全检查1】验证客户端是否存在且redirect_uri是否匹配
@@ -35,10 +41,26 @@ public class OAuth2Controller {
             return "error";  // 返回错误页面
         }
 
+        if (codeChallenge == null || codeChallenge.isBlank()) {
+            model.addAttribute("error", "invalid_request");
+            return "error";
+        }
+
+        String normalizedMethod = codeChallengeMethod == null
+                ? CodeChallengeMethod.S256.name()
+                : codeChallengeMethod.toUpperCase(Locale.ROOT);
+
+        if (!CodeChallengeMethod.S256.name().equals(normalizedMethod)) {
+            model.addAttribute("error", "unsupported_code_challenge_method");
+            return "error";
+        }
+        model.addAttribute("code_challenge", codeChallenge);
+        model.addAttribute("code_challenge_method", normalizedMethod);
+
         // 【数据传递】将参数传递给登录页面模板
         model.addAttribute("client_id", client_id);
         model.addAttribute("redirect_uri", redirect_uri);
-        model.addAttribute("state", state);
+        model.addAttribute("state", state == null ? "" : state);
 
         return "login";  // 渲染登录页面(src/main/resources/templates/login.html)
     }
@@ -49,7 +71,10 @@ public class OAuth2Controller {
                                   @RequestParam String redirect_uri,
                                   @RequestParam(required = false) String state,
                                   @RequestParam String username,    // 用户输入的用户名
-                                  @RequestParam String password) {  // 用户输入的密码
+                                  @RequestParam String password,
+                                  @RequestParam(required = false, name = "code_challenge") String codeChallenge,
+                                  @RequestParam(required = false, name = "code_challenge_method") String codeChallengeMethod
+                                  ) {  // 用户输入的密码
 
         // 【安全检查2】验证用户凭证
         User user = dataStore.getUsers().get(username);
@@ -59,10 +84,29 @@ public class OAuth2Controller {
                     "&redirect_uri=" + redirect_uri + "&response_type=code&error=invalid_user";
         }
 
+        if (codeChallenge == null || codeChallenge.isBlank()) {
+            return "redirect:/oauth/authorize?client_id=" + client_id +
+                    "&redirect_uri=" + redirect_uri + "&response_type=code&error=invalid_request";
+        }
+
+        String normalizedMethod = codeChallengeMethod == null
+                ? CodeChallengeMethod.S256.name()
+                : codeChallengeMethod.toUpperCase(Locale.ROOT);
+
+        if (!CodeChallengeMethod.S256.name().equals(normalizedMethod)) {
+            return "redirect:/oauth/authorize?client_id=" + client_id +
+                    "&redirect_uri=" + redirect_uri + "&response_type=code&error=unsupported_code_challenge_method";
+        }
+
+        CodeChallengeMethod method = CodeChallengeMethod.valueOf(normalizedMethod);
+
         // 【核心逻辑1】生成授权码 - OAuth2的关键机制
         String code = UUID.randomUUID().toString();  // 生成随机授权码
         AuthCode authCode = new AuthCode(code, client_id, username,
-                System.currentTimeMillis() + 600000); // 10分钟过期
+                System.currentTimeMillis() + 600000,
+                codeChallenge,
+                method
+                ); // 10分钟过期
         dataStore.getAuthCodes().put(code, authCode);
 
         // 【协议实现】构建重定向URL，将授权码返回给客户端
@@ -80,7 +124,8 @@ public class OAuth2Controller {
     public Map<String, Object> token(@RequestParam String grant_type,     // 授权类型
                                      @RequestParam String code,             // 授权码
                                      @RequestParam String client_id,        // 客户端ID
-                                     @RequestParam String client_secret) {  // 客户端密钥
+                                     @RequestParam String client_secret,
+                                     HttpServletRequest request) {  // 客户端密钥
 
         Map<String, Object> response = new HashMap<>();
 
@@ -94,6 +139,12 @@ public class OAuth2Controller {
         // 【安全检查4】验证授权码的有效性和时效性
         AuthCode authCode = dataStore.getAuthCodes().get(code);
         if (authCode == null || authCode.getExpireTime() < System.currentTimeMillis()) {
+            response.put("error", "invalid_grant");
+            return response;
+        }
+
+        String codeVerifier = request.getParameter("code_verifier");
+        if (!PkceVerifier.matches(codeVerifier, authCode.getCodeChallenge(), authCode.getCodeChallengeMethod())) {
             response.put("error", "invalid_grant");
             return response;
         }

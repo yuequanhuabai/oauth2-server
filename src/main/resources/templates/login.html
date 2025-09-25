@@ -10,6 +10,8 @@
     <input type="hidden" name="client_id" th:value="${client_id}"/>
     <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
     <input type="hidden" name="state" th:value="${state}"/>
+    <input type="hidden" name="code_challenge" th:value="${code_challenge}" />
+    <input type="hidden" name="code_challenge_method" th:value="${code_challenge_method}" />
 
     <p>
         用户名: <input type="text" name="username" placeholder="admin"/>
