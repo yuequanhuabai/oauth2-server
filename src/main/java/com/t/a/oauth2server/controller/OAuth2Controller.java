@@ -61,8 +61,15 @@ public class OAuth2Controller {
 
         // 【核心逻辑1】生成授权码 - OAuth2的关键机制
         String code = UUID.randomUUID().toString();  // 生成随机授权码
-        AuthCode authCode = new AuthCode(code, client_id, username,
-                System.currentTimeMillis() + 600000); // 10分钟过期
+//        AuthCode authCode = new AuthCode(code, client_id, username,
+//                System.currentTimeMillis() + 600000); // 10分钟过期
+        AuthCode authCode = new AuthCode().builder()
+                .code(code)
+                .clientId(client_id)
+                .username(username)
+                .expireTime(System.currentTimeMillis() + 600000)
+                .build();
+
         dataStore.getAuthCodes().put(code, authCode);
 
         // 【协议实现】构建重定向URL，将授权码返回给客户端
