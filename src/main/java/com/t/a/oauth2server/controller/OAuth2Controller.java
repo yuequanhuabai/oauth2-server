@@ -26,6 +26,7 @@ public class OAuth2Controller {
 
 
     // =============== 步骤1: 授权端点 - 显示登录页面 ===============
+    // 入参是不是拉了一个scope:
     @GetMapping("/oauth/authorize")
     public String authorize(@RequestParam String client_id,         // 客户端ID
                             @RequestParam String redirect_uri,       // 重定向URI
