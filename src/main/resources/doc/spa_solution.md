@@ -6,7 +6,7 @@
 
 拆分的核心不是“把页面搬走”，而是沿着 OAuth2 授权码（含 PKCE）的步骤，按“是否需要保密（client_secret）”和“运行环境（浏览器还是服务器）”来划分职责。这样可以在不改协议语义的前提下，稳妥抽离前端。
 
-1) 授权码获取（Authorization Request → User Login → Authorization Code）
+[1) 授权码获取（Authorization Request → User Login → Authorization Code）]()
 
 - 浏览器/前端职责：
   - 生成 `state`（防 CSRF）；
